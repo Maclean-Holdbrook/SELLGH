@@ -1,0 +1,9 @@
+﻿# Supabase Configuration
+VITE_SUPABASE_URL=https://nszweqmnahxwnalbeoeo.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zendlcW1uYWh4d25hbGJlb2VvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzODY0OTIsImV4cCI6MjA3ODk2MjQ5Mn0.L-d_dIWpMTtR_Gi-GRZ2ggKmkaHdfBvzLUayv3ohNnk
+
+# Backend API URL
+VITE_API_URL=http://localhost:5000/api
+
+# Paystack Public Key (for frontend payments)
+VITE_PAYSTACK_PUBLIC_KEY=pk_test_88b77ca3ae949e10dcd09be85a1068ce1620e9dc
