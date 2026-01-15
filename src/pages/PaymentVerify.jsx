@@ -36,6 +36,11 @@ const PaymentVerify = () => {
 
           // Remove pending order from localStorage
           localStorage.removeItem('pending_order');
+
+          // Automatic redirect to shop after 2 seconds
+          setTimeout(() => {
+            navigate('/shop');
+          }, 2000);
         } else {
           setStatus('failed');
           setError(data.error || 'Payment verification failed');
