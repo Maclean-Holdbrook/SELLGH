@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import AdminNavigation from '../../components/AdminNavigation';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminPayouts = () => {
   const { profile, user, loading, session } = useAuth();
@@ -228,21 +228,19 @@ const AdminPayouts = () => {
             <nav className="flex -mb-px">
               <button
                 onClick={() => setActiveTab('commissions')}
-                className={`px-6 py-3 border-b-2 font-medium text-sm ${
-                  activeTab === 'commissions'
+                className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'commissions'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 Commissions
               </button>
               <button
                 onClick={() => setActiveTab('payouts')}
-                className={`px-6 py-3 border-b-2 font-medium text-sm ${
-                  activeTab === 'payouts'
+                className={`px-6 py-3 border-b-2 font-medium text-sm ${activeTab === 'payouts'
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 Vendor Payouts
               </button>
@@ -326,11 +324,10 @@ const AdminPayouts = () => {
                             {formatCurrency(commission.platform_commission)}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              commission.status === 'settled'
+                            <span className={`px-2 py-1 text-xs rounded-full ${commission.status === 'settled'
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-yellow-100 text-yellow-800'
-                            }`}>
+                              }`}>
                               {commission.status}
                             </span>
                           </td>
@@ -380,13 +377,12 @@ const AdminPayouts = () => {
                             {payout.payout_method}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              payout.status === 'paid'
+                            <span className={`px-2 py-1 text-xs rounded-full ${payout.status === 'paid'
                                 ? 'bg-green-100 text-green-800'
                                 : payout.status === 'processing'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                              }`}>
                               {payout.status}
                             </span>
                           </td>

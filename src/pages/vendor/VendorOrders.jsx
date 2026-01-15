@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import VendorNavigation from '../../components/VendorNavigation';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const VendorOrders = () => {
   const { vendorProfile, session } = useAuth();
@@ -184,11 +184,10 @@ const VendorOrders = () => {
                       <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${getStatusColor(order.status)}`}>
                         {order.status}
                       </span>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${
-                        order.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
-                        order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium capitalize ${order.payment_status === 'paid' ? 'bg-green-100 text-green-800' :
+                          order.payment_status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                        }`}>
                         {order.payment_status}
                       </span>
                     </div>

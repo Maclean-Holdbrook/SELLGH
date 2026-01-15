@@ -5,7 +5,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { supabase } from '../../config/supabase';
 import VendorNavigation from '../../components/VendorNavigation';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const ProductForm = () => {
   const { id } = useParams();
@@ -638,8 +638,8 @@ const ProductForm = () => {
                     ? 'Uploading Images...'
                     : 'Saving...'
                   : isEdit
-                  ? 'Update Product'
-                  : 'Create Product'}
+                    ? 'Update Product'
+                    : 'Create Product'}
               </button>
             </div>
           </form>

@@ -5,7 +5,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { supabase } from '../../config/supabase';
 import VendorNavigation from '../../components/VendorNavigation';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -212,11 +212,10 @@ const Products = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          product.is_active
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${product.is_active
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
-                        }`}
+                          }`}
                       >
                         {product.is_active ? 'Active' : 'Inactive'}
                       </span>

@@ -5,7 +5,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { supabase } from '../../config/supabase';
 import AdminNavigation from '../../components/AdminNavigation';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminWithdrawals = () => {
   const { profile, user, loading, session } = useAuth();
@@ -138,15 +138,15 @@ const AdminWithdrawals = () => {
       // Prepare account details based on withdrawal method
       const account_details = newWithdrawal.withdrawal_method === 'momo'
         ? {
-            account_number: newWithdrawal.account_number,
-            account_name: newWithdrawal.account_name,
-            provider: newWithdrawal.provider
-          }
+          account_number: newWithdrawal.account_number,
+          account_name: newWithdrawal.account_name,
+          provider: newWithdrawal.provider
+        }
         : {
-            account_number: newWithdrawal.account_number,
-            account_name: newWithdrawal.account_name,
-            bank_name: newWithdrawal.bank_name
-          };
+          account_number: newWithdrawal.account_number,
+          account_name: newWithdrawal.account_name,
+          bank_name: newWithdrawal.bank_name
+        };
 
       console.log('📤 Creating withdrawal:', { amount: newWithdrawal.amount, method: newWithdrawal.withdrawal_method });
 
@@ -280,11 +280,10 @@ const AdminWithdrawals = () => {
               <h2 className="text-lg font-semibold text-gray-900">Withdrawal History</h2>
               <button
                 onClick={() => setShowCreateWithdrawal(true)}
-                className={`px-4 py-2 rounded-lg ${
-                  balance.available_balance <= 0
+                className={`px-4 py-2 rounded-lg ${balance.available_balance <= 0
                     ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                     : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
+                  }`}
                 disabled={balance.available_balance <= 0}
                 title={balance.available_balance <= 0 ? 'No funds available for withdrawal' : 'Create a new withdrawal'}
               >
@@ -338,15 +337,14 @@ const AdminWithdrawals = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            withdrawal.status === 'completed'
+                          <span className={`px-2 py-1 text-xs rounded-full ${withdrawal.status === 'completed'
                               ? 'bg-green-100 text-green-800'
                               : withdrawal.status === 'processing'
-                              ? 'bg-blue-100 text-blue-800'
-                              : withdrawal.status === 'failed'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                                ? 'bg-blue-100 text-blue-800'
+                                : withdrawal.status === 'failed'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                            }`}>
                             {withdrawal.status}
                           </span>
                         </td>

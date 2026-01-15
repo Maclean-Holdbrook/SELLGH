@@ -5,7 +5,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { supabase } from '../../config/supabase';
 import VendorNavigation from '../../components/VendorNavigation';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const VendorEarnings = () => {
   const { profile, vendorProfile, loading } = useAuth();
@@ -226,11 +226,10 @@ const VendorEarnings = () => {
             </div>
             <button
               onClick={() => setShowWithdrawalForm(true)}
-              className={`px-6 py-3 rounded-lg font-semibold ${
-                stats.pending >= 10
+              className={`px-6 py-3 rounded-lg font-semibold ${stats.pending >= 10
                   ? 'bg-green-600 text-white hover:bg-green-700'
                   : 'bg-gray-400 text-gray-200 cursor-not-allowed'
-              }`}
+                }`}
               disabled={stats.pending < 10}
               title={stats.pending < 10 ? 'Minimum withdrawal is GHS 10.00' : 'Request withdrawal'}
             >
@@ -280,15 +279,14 @@ const VendorEarnings = () => {
                           {payout.payout_method === 'momo' ? 'Mobile Money' : 'Bank Transfer'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            payout.status === 'paid'
+                          <span className={`px-2 py-1 text-xs rounded-full ${payout.status === 'paid'
                               ? 'bg-green-100 text-green-800'
                               : payout.status === 'processing'
-                              ? 'bg-blue-100 text-blue-800'
-                              : payout.status === 'rejected'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                                ? 'bg-blue-100 text-blue-800'
+                                : payout.status === 'rejected'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-yellow-100 text-yellow-800'
+                            }`}>
                             {payout.status}
                           </span>
                         </td>
@@ -343,11 +341,10 @@ const VendorEarnings = () => {
                           {formatCurrency(commission.platform_commission)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            commission.status === 'settled'
+                          <span className={`px-2 py-1 text-xs rounded-full ${commission.status === 'settled'
                               ? 'bg-green-100 text-green-800'
                               : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                            }`}>
                             {commission.status}
                           </span>
                         </td>
