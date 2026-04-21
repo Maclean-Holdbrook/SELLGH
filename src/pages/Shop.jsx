@@ -36,7 +36,10 @@ const Shop = () => {
   }, []);
 
   useEffect(() => {
-    const paymentReference = searchParams.get('payment_reference');
+    const paymentReference =
+      searchParams.get('payment_reference')
+      || searchParams.get('reference')
+      || searchParams.get('trxref');
 
     if (!paymentReference) {
       return;
