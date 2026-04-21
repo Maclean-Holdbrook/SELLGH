@@ -1,6 +1,35 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useAuth } from './AuthContext';
 
-const CartContext = createContext({});
+const CartContext = createContext(null);
+const EMPTY_CART_CONTEXT = {
+  cartItems: [],
+  isCartOpen: false,
+  setIsCartOpen: () => {},
+  addToCart: () => {},
+  removeFromCart: () => {},
+  updateQuantity: () => {},
+  clearCart: () => {},
+  getCartTotal: () => 0,
+  getCartCount: () => 0,
+  getItemsByVendor: () => []
+};
+
+const loadCartItems = (storageKey) => {
+  const savedCart = localStorage.getItem(storageKey);
+
+  if (!savedCart) {
+    return [];
+  }
+
+  try {
+    return JSON.parse(savedCart);
+  } catch (error) {
+    console.error('Error loading cart:', error);
+    localStorage.removeItem(storageKey);
+    return [];
+  }
+};
 
 export const useCart = () => {
   const context = useContext(CartContext);
@@ -11,26 +40,32 @@ export const useCart = () => {
 };
 
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([]);
+  const { user, loading } = useAuth();
+  const storageKey = user?.id ? `sellgh_cart_${user.id}` : 'sellgh_cart_guest';
+
+  if (loading) {
+    return <CartContext.Provider value={EMPTY_CART_CONTEXT}>{children}</CartContext.Provider>;
+  }
+
+  return (
+    <CartStorageProvider key={storageKey} storageKey={storageKey}>
+      {children}
+    </CartStorageProvider>
+  );
+};
+
+const CartStorageProvider = ({ children, storageKey }) => {
+  const [cartItems, setCartItems] = useState(() => loadCartItems(storageKey));
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const hydratedStorageKeyRef = useRef(storageKey);
 
-  // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('sellgh_cart');
-    if (savedCart) {
-      try {
-        setCartItems(JSON.parse(savedCart));
-      } catch (e) {
-        console.error('Error loading cart:', e);
-        localStorage.removeItem('sellgh_cart');
-      }
+    if (hydratedStorageKeyRef.current !== storageKey) {
+      return;
     }
-  }, []);
 
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('sellgh_cart', JSON.stringify(cartItems));
-  }, [cartItems]);
+    localStorage.setItem(storageKey, JSON.stringify(cartItems));
+  }, [cartItems, storageKey]);
 
   const addToCart = (product, quantity = 1) => {
     setCartItems(prevItems => {
