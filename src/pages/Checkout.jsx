@@ -86,6 +86,9 @@ const Checkout = () => {
       localStorage.setItem('pending_order', JSON.stringify({
         order_id: result.data.order_id,
         cart_items: cartItems,
+        amount: getCartTotal(),
+        customer_email: formData.email,
+        payment_method: formData.payment_method,
       }));
 
       alert.info('Redirecting to payment gateway...');
