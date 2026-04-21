@@ -9,7 +9,7 @@ import { supabase } from '../config/supabase';
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Navbar = ({ activePage = '' }) => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshAuthState } = useAuth();
   const { getCartCount } = useCart();
   const { getWishlistCount } = useWishlist();
   const alert = useAlert();
@@ -62,8 +62,9 @@ const Navbar = ({ activePage = '' }) => {
         throw new Error(data.error || 'Failed to upgrade account');
       }
 
+      await refreshAuthState?.();
       alert.success('Account upgraded successfully! Redirecting to vendor onboarding...');
-      window.location.reload(); // Reload to update the auth context
+      setIsMenuOpen(false);
       navigate('/vendor/onboarding');
     } catch (error) {
       console.error('Error upgrading account:', error);

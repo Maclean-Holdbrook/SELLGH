@@ -269,6 +269,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const refreshAuthState = async () => {
+    try {
+      const { data: { session: latestSession } } = await supabase.auth.getSession();
+      await loadUserState(latestSession);
+      return latestSession;
+    } catch (error) {
+      console.error('Error refreshing auth state:', error);
+      return null;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -284,6 +295,7 @@ export const AuthProvider = ({ children }) => {
         updateProfile,
         resetPassword,
         refreshVendorProfile,
+        refreshAuthState,
         isAuthenticated: !!user,
         isVendor: profile?.role === 'vendor',
         isAdmin: profile?.role === 'admin',
