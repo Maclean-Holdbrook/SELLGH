@@ -68,7 +68,9 @@ const AlertContainer = () => {
     <>
       {/* Toast Alerts Container */}
       <div className="fixed top-4 right-4 z-50 space-y-3 max-w-md w-full pointer-events-none">
-        {alerts.map((alert) => {
+        {alerts
+          .filter((alert) => typeof alert?.message === 'string' && alert.message.trim())
+          .map((alert) => {
           const style = getAlertStyles(alert.type);
           const Icon = style.Icon;
 

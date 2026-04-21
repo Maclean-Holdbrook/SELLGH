@@ -8,6 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminDashboard = () => {
   const { profile, signOut, user, loading, session } = useAuth();
+  const alert = useAlert();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalVendors: 0,
@@ -204,7 +205,7 @@ const AdminDashboard = () => {
       }
 
       console.log('Vendor approved');
-      alert.error('Vendor approved successfully!');
+      alert.success('Vendor approved successfully!');
       fetchStats();
       fetchPendingVendors();
     } catch (err) {

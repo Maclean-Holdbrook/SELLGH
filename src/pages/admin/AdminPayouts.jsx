@@ -8,6 +8,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminPayouts = () => {
   const { profile, user, loading, session } = useAuth();
+  const alert = useAlert();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('commissions');
@@ -133,7 +134,7 @@ const AdminPayouts = () => {
       const data = await response.json();
 
       if (data.success) {
-        alert.error('Payout created successfully!');
+        alert.success('Payout created successfully!');
         setShowCreatePayout(false);
         setNewPayout({
           vendor_id: '',
@@ -171,7 +172,7 @@ const AdminPayouts = () => {
       const data = await response.json();
 
       if (data.success) {
-        alert.error(`Payout marked as ${status}!`);
+        alert.success(`Payout marked as ${status}!`);
         fetchPayouts();
         fetchCommissions();
       } else {

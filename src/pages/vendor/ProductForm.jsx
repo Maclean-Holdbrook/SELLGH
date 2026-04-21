@@ -1,353 +1,381 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { supabase } from '../../config/supabase';
 import VendorNavigation from '../../components/VendorNavigation';
 
 const API_URL = import.meta.env.VITE_API_URL;
+const MAX_IMAGES = 5;
+const VALID_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+
+const initialFormState = {
+  name: '',
+  description: '',
+  price: '',
+  compare_at_price: '',
+  stock_quantity: '',
+  sku: '',
+  category_id: '',
+  is_featured: false,
+};
 
 const ProductForm = () => {
   const { id } = useParams();
-  const isEdit = !!id;
+  const isEdit = Boolean(id);
   const navigate = useNavigate();
-  const { user, session } = useAuth();
+  const alert = useAlert();
+  const { user, session, loading: authLoading } = useAuth();
 
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    compare_at_price: '',
-    stock_quantity: '',
-    sku: '',
-    category_id: '',
-    is_featured: false,
-  });
+  const [formData, setFormData] = useState(initialFormState);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [checkingVendor, setCheckingVendor] = useState(true);
   const [vendorId, setVendorId] = useState(null);
-  const alert = useAlert();
-
-  // Image upload state
   const [images, setImages] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [imagesToDelete, setImagesToDelete] = useState([]);
 
-  useEffect(() => {
-    fetchCategories();
-    fetchVendorId();
-    if (isEdit) {
-      fetchProduct();
-    }
-  }, [id]);
-
-  const fetchVendorId = async () => {
-    setCheckingVendor(true);
+  const fetchCategories = useCallback(async () => {
     try {
-      const { data: vendor } = await supabase
+      const response = await fetch(`${API_URL}/products/categories`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch categories');
+      }
+
+      setCategories(data.categories || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      alert.error(error.message || 'Failed to load categories');
+    }
+  }, [alert]);
+
+  const fetchVendorProfile = useCallback(async () => {
+    if (!user?.id) {
+      setCheckingVendor(false);
+      return;
+    }
+
+    setCheckingVendor(true);
+
+    try {
+      const { data, error } = await supabase
         .from('vendors')
         .select('id, is_verified')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (!vendor) {
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
         alert.error('Vendor profile not found');
-        setCheckingVendor(false);
+        setVendorId(null);
         return;
       }
 
-      if (!vendor.is_verified) {
+      if (!data.is_verified) {
         alert.error('Your vendor account must be verified before adding products');
-        setCheckingVendor(false);
+        setVendorId(null);
         return;
       }
 
-      setVendorId(vendor.id);
-    } catch (err) {
-      console.error('Error fetching vendor:', err);
+      setVendorId(data.id);
+    } catch (error) {
+      console.error('Error fetching vendor profile:', error);
       alert.error('Failed to load vendor profile');
+      setVendorId(null);
     } finally {
       setCheckingVendor(false);
     }
-  };
+  }, [alert, user?.id]);
 
-  const fetchCategories = async () => {
+  const fetchProduct = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/products/categories`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-      if (!response.ok) throw new Error('Failed to fetch categories');
-      const data = await response.json();
-      setCategories(data.categories || []);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-    }
-  };
-
-  const fetchProduct = async () => {
-    try {
-      const { data, error: productError } = await supabase
+      const { data, error } = await supabase
         .from('products')
-        .select(`
-          *,
-          images:product_images(*)
-        `)
+        .select('*, images:product_images(*)')
         .eq('id', id)
+        .eq('vendor_id', vendorId)
         .single();
 
-      if (productError) throw productError;
+      if (error) {
+        throw error;
+      }
 
       setFormData({
         name: data.name || '',
         description: data.description || '',
-        price: data.price || '',
-        compare_at_price: data.compare_at_price || '',
-        stock_quantity: data.stock_quantity || '',
+        price: data.price?.toString() || '',
+        compare_at_price: data.compare_at_price?.toString() || '',
+        stock_quantity: data.stock_quantity?.toString() || '',
         sku: data.sku || '',
         category_id: data.category_id || '',
-        is_featured: data.is_featured || false,
+        is_featured: Boolean(data.is_featured),
       });
-
-      // Set existing images
-      if (data.images && data.images.length > 0) {
-        setExistingImages(data.images);
-      }
-    } catch (err) {
-      console.error('Error fetching product:', err);
+      setExistingImages(data.images || []);
+      setImagesToDelete([]);
+    } catch (error) {
+      console.error('Error fetching product:', error);
       alert.error('Failed to load product');
     }
-  };
+  }, [alert, id, vendorId]);
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value,
-    });
-  };
-
-  // Handle image file selection
-  const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files);
-    const maxImages = 5;
-    const currentTotal = images.length + existingImages.length - imagesToDelete.length;
-
-    if (currentTotal + files.length > maxImages) {
-      alert.error(`You can only upload up to ${maxImages} images per product`);
+  useEffect(() => {
+    if (authLoading || !user?.id || !session?.access_token) {
       return;
     }
 
-    // Validate file types and sizes
-    const validFiles = files.filter(file => {
-      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-      const maxSize = 5 * 1024 * 1024; // 5MB
+    fetchCategories();
+    fetchVendorProfile();
+  }, [authLoading, fetchCategories, fetchVendorProfile, session?.access_token, user?.id]);
 
-      if (!validTypes.includes(file.type)) {
-        alert.error('Only JPEG, PNG, GIF, and WebP images are allowed');
-        return false;
-      }
+  useEffect(() => {
+    if (!isEdit || !vendorId) {
+      return;
+    }
 
-      if (file.size > maxSize) {
-        alert.error('Each image must be less than 5MB');
-        return false;
-      }
+    fetchProduct();
+  }, [fetchProduct, isEdit, vendorId]);
 
-      return true;
-    });
-
-    // Create preview URLs
-    const newImages = validFiles.map(file => ({
-      file,
-      preview: URL.createObjectURL(file),
+  const handleChange = (event) => {
+    const { name, value, type, checked } = event.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
     }));
-
-    setImages([...images, ...newImages]);
-    alert.error('');
   };
 
-  // Remove a new image (not yet uploaded)
-  const removeNewImage = (index) => {
-    const newImages = [...images];
-    URL.revokeObjectURL(newImages[index].preview);
-    newImages.splice(index, 1);
-    setImages(newImages);
-  };
+  const handleImageSelect = (event) => {
+    const files = Array.from(event.target.files || []);
+    const currentTotal = images.length + existingImages.length - imagesToDelete.length;
 
-  // Mark an existing image for deletion
-  const markImageForDeletion = (imageId) => {
-    setImagesToDelete([...imagesToDelete, imageId]);
-  };
-
-  // Restore an image marked for deletion
-  const restoreImage = (imageId) => {
-    setImagesToDelete(imagesToDelete.filter(id => id !== imageId));
-  };
-
-  // Upload images to Supabase Storage
-  const uploadImages = async (productId) => {
-    const uploadedUrls = [];
-
-    for (const image of images) {
-      const fileExt = image.file.name.split('.').pop();
-      const fileName = `${productId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, image.file);
-
-      if (uploadError) {
-        console.error('Error uploading image:', uploadError);
-        continue;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(fileName);
-
-      uploadedUrls.push({
-        product_id: productId,
-        image_url: publicUrl,
-        is_primary: uploadedUrls.length === 0 && existingImages.length === 0,
-      });
+    if (currentTotal + files.length > MAX_IMAGES) {
+      alert.error(`You can only upload up to ${MAX_IMAGES} images per product`);
+      event.target.value = '';
+      return;
     }
 
-    return uploadedUrls;
-  };
+    const validFiles = [];
 
-  // Delete images from storage and database
-  const deleteImages = async () => {
-    for (const imageId of imagesToDelete) {
-      const imageToDelete = existingImages.find(img => img.id === imageId);
-      if (imageToDelete) {
-        // Extract file path from URL
-        const url = new URL(imageToDelete.image_url);
-        const pathParts = url.pathname.split('/');
-        const bucketIndex = pathParts.findIndex(p => p === 'product-images');
-        if (bucketIndex !== -1) {
-          const filePath = pathParts.slice(bucketIndex + 1).join('/');
-
-          // Delete from storage
-          await supabase.storage
-            .from('product-images')
-            .remove([filePath]);
-        }
-
-        // Delete from database
-        await supabase
-          .from('product_images')
-          .delete()
-          .eq('id', imageId);
-      }
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    alert.error('');
-    setLoading(true);
-
-    try {
-      // Validate required fields
-      if (!formData.name || !formData.price) {
-        alert.error('Name and price are required');
-        setLoading(false);
+    files.forEach((file) => {
+      if (!VALID_IMAGE_TYPES.includes(file.type)) {
+        alert.error('Only JPEG, PNG, GIF, and WebP images are allowed');
         return;
       }
 
-      // Prepare product data
-      const productData = {
-        ...formData,
-        price: parseFloat(formData.price),
-        compare_at_price: formData.compare_at_price ? parseFloat(formData.compare_at_price) : null,
-        stock_quantity: parseInt(formData.stock_quantity) || 0,
-        category_id: formData.category_id || null,
-      };
-
-      let productId = id;
-
-      if (isEdit) {
-        // Update existing product
-        const { error: updateError } = await supabase
-          .from('products')
-          .update(productData)
-          .eq('id', id)
-          .eq('vendor_id', vendorId);
-
-        if (updateError) throw updateError;
-      } else {
-        // Create new product
-        const slug = formData.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-        const { data: newProduct, error: insertError } = await supabase
-          .from('products')
-          .insert([
-            {
-              ...productData,
-              vendor_id: vendorId,
-              slug: `${slug}-${Date.now()}`,
-              is_active: true,
-            },
-          ])
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        productId = newProduct.id;
+      if (file.size > MAX_IMAGE_SIZE) {
+        alert.error('Each image must be less than 5MB');
+        return;
       }
 
-      // Handle image uploads
-      if (images.length > 0) {
-        setUploadingImages(true);
-        const uploadedImages = await uploadImages(productId);
+      validFiles.push({
+        file,
+        preview: URL.createObjectURL(file),
+      });
+    });
 
-        if (uploadedImages.length > 0) {
-          const { error: imagesError } = await supabase
-            .from('product_images')
-            .insert(uploadedImages);
+    if (validFiles.length > 0) {
+      setImages((prev) => [...prev, ...validFiles]);
+    }
 
-          if (imagesError) {
-            console.error('Error saving image records:', imagesError);
-          }
-        }
-        setUploadingImages(false);
+    event.target.value = '';
+  };
+
+  const removeNewImage = (index) => {
+    setImages((prev) => {
+      const next = [...prev];
+      URL.revokeObjectURL(next[index].preview);
+      next.splice(index, 1);
+      return next;
+    });
+  };
+
+  const markImageForDeletion = (imageId) => {
+    setImagesToDelete((prev) => [...prev, imageId]);
+  };
+
+  const restoreImage = (imageId) => {
+    setImagesToDelete((prev) => prev.filter((idToKeep) => idToKeep !== imageId));
+  };
+
+  const parseStoragePath = (imageUrl) => {
+    try {
+      const url = new URL(imageUrl);
+      const marker = '/storage/v1/object/public/product-images/';
+      const markerIndex = url.pathname.indexOf(marker);
+
+      if (markerIndex === -1) {
+        return null;
       }
 
-      // Handle image deletions
+      return decodeURIComponent(url.pathname.slice(markerIndex + marker.length));
+    } catch {
+      return null;
+    }
+  };
+
+  const uploadImages = async (productId) => {
+    const uploadedImages = [];
+
+    for (const image of images) {
+      const fileExt = image.file.name.split('.').pop();
+      const fileName = `${productId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, image.file, { upsert: false });
+
+      if (uploadError) {
+        throw uploadError;
+      }
+
+      const { data } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+
+      uploadedImages.push({
+        product_id: productId,
+        image_url: data.publicUrl,
+        is_primary: existingImages.length === imagesToDelete.length && uploadedImages.length === 0,
+      });
+    }
+
+    return uploadedImages;
+  };
+
+  const deleteMarkedImages = async () => {
+    for (const imageId of imagesToDelete) {
+      const image = existingImages.find((item) => item.id === imageId);
+
+      if (!image) {
+        continue;
+      }
+
+      const storagePath = parseStoragePath(image.image_url);
+      if (storagePath) {
+        await supabase.storage.from('product-images').remove([storagePath]);
+      }
+
+      const { error } = await supabase
+        .from('product_images')
+        .delete()
+        .eq('id', imageId);
+
+      if (error) {
+        throw error;
+      }
+    }
+  };
+
+  const upsertImageRecords = async (productId) => {
+    if (images.length === 0) {
+      return;
+    }
+
+    setUploadingImages(true);
+    const uploadedImages = await uploadImages(productId);
+
+    if (uploadedImages.length === 0) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('product_images')
+      .insert(uploadedImages);
+
+    if (error) {
+      throw error;
+    }
+  };
+
+  const saveProduct = async () => {
+    const payload = {
+      name: formData.name.trim(),
+      description: formData.description?.trim() || '',
+      price: Number(formData.price),
+      compare_at_price: formData.compare_at_price ? Number(formData.compare_at_price) : null,
+      stock_quantity: formData.stock_quantity ? Number(formData.stock_quantity) : 0,
+      sku: formData.sku?.trim() || null,
+      category_id: formData.category_id || null,
+      is_featured: Boolean(formData.is_featured),
+    };
+
+    const requestOptions = {
+      method: isEdit ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(payload),
+    };
+
+    const endpoint = isEdit ? `${API_URL}/products/${id}` : `${API_URL}/products`;
+    const response = await fetch(endpoint, requestOptions);
+    const result = await response.json();
+
+    if (!response.ok) {
+      const details = result.details?.[0]?.message;
+      throw new Error(details || result.error || 'Failed to save product');
+    }
+
+    return result.product;
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!session?.access_token) {
+      alert.error('Your session has expired. Please sign in again.');
+      return;
+    }
+
+    if (!formData.name.trim() || !formData.price) {
+      alert.error('Name and price are required');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const product = await saveProduct();
+      const productId = product.id;
+
       if (imagesToDelete.length > 0) {
-        await deleteImages();
+        await deleteMarkedImages();
       }
 
-      // Success - redirect to products list
+      await upsertImageRecords(productId);
+
+      images.forEach((image) => URL.revokeObjectURL(image.preview));
+
       alert.success(isEdit ? 'Product updated successfully!' : 'Product created successfully!');
       navigate('/vendor/products');
-    } catch (err) {
-      console.error('Error saving product:', err);
-      alert.error(err.message || 'Failed to save product');
+    } catch (error) {
+      console.error('Error saving product:', error);
+      alert.error(error.message || 'Failed to save product');
     } finally {
       setLoading(false);
       setUploadingImages(false);
     }
   };
 
-  // Show loading while checking vendor
-  if (checkingVendor) {
+  if (authLoading || checkingVendor) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto" />
           <p className="mt-4 text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Show error if vendor check failed
   if (!vendorId) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -380,9 +408,7 @@ const ProductForm = () => {
             </p>
           </div>
 
-
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Product Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Product Name *
@@ -399,7 +425,6 @@ const ProductForm = () => {
               />
             </div>
 
-            {/* Description */}
             <div>
               <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                 Description
@@ -415,13 +440,11 @@ const ProductForm = () => {
               />
             </div>
 
-            {/* Product Images */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Product Images (max 5)
               </label>
 
-              {/* Existing Images */}
               {existingImages.length > 0 && (
                 <div className="mb-4">
                   <p className="text-sm text-gray-500 mb-2">Current Images:</p>
@@ -450,7 +473,7 @@ const ProductForm = () => {
                             onClick={() => markImageForDeletion(image.id)}
                             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
                           >
-                            ×
+                            x
                           </button>
                         )}
                         {image.is_primary && (
@@ -464,13 +487,12 @@ const ProductForm = () => {
                 </div>
               )}
 
-              {/* New Images Preview */}
               {images.length > 0 && (
                 <div className="mb-4">
                   <p className="text-sm text-gray-500 mb-2">New Images to Upload:</p>
                   <div className="flex flex-wrap gap-4">
                     {images.map((image, index) => (
-                      <div key={index} className="relative">
+                      <div key={`${image.file.name}-${index}`} className="relative">
                         <img
                           src={image.preview}
                           alt={`New ${index + 1}`}
@@ -481,7 +503,7 @@ const ProductForm = () => {
                           onClick={() => removeNewImage(index)}
                           className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
                         >
-                          ×
+                          x
                         </button>
                       </div>
                     ))}
@@ -489,7 +511,6 @@ const ProductForm = () => {
                 </div>
               )}
 
-              {/* Upload Button */}
               <div className="mt-2">
                 <label className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                   <svg className="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -510,11 +531,10 @@ const ProductForm = () => {
               </div>
             </div>
 
-            {/* Price Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-                  Price (GH₵) *
+                  Price (GHs) *
                 </label>
                 <input
                   id="price"
@@ -532,7 +552,7 @@ const ProductForm = () => {
 
               <div>
                 <label htmlFor="compare_at_price" className="block text-sm font-medium text-gray-700">
-                  Compare at Price (GH₵)
+                  Compare at Price (GHs)
                 </label>
                 <input
                   id="compare_at_price"
@@ -545,11 +565,10 @@ const ProductForm = () => {
                   className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="0.00"
                 />
-                <p className="mt-1 text-xs text-gray-500">Original price (for discounts)</p>
+                <p className="mt-1 text-xs text-gray-500">Original price for discount display</p>
               </div>
             </div>
 
-            {/* Stock and SKU */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="stock_quantity" className="block text-sm font-medium text-gray-700">
@@ -583,7 +602,6 @@ const ProductForm = () => {
               </div>
             </div>
 
-            {/* Category */}
             <div>
               <label htmlFor="category_id" className="block text-sm font-medium text-gray-700">
                 Category
@@ -604,7 +622,6 @@ const ProductForm = () => {
               </select>
             </div>
 
-            {/* Featured */}
             <div className="flex items-center">
               <input
                 id="is_featured"
@@ -619,7 +636,6 @@ const ProductForm = () => {
               </label>
             </div>
 
-            {/* Submit Buttons */}
             <div className="flex gap-4">
               <button
                 type="button"

@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     if (profile?.role === 'vendor') {
       return <Navigate to="/vendor/dashboard" replace />;
     } else if (profile?.role === 'admin') {
-      return <Navigate to="/admin/dashboard" replace />;
+      return <Navigate to="/sellgh-admin/dashboard" replace />;
     } else {
       return <Navigate to="/" replace />;
     }

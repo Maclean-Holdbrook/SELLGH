@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
-import { supabase } from '../../config/supabase';
 import VendorNavigation from '../../components/VendorNavigation';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -13,14 +12,8 @@ const Products = () => {
   const { user, session } = useAuth();
   const alert = useAlert();
 
-  useEffect(() => {
-    if (user?.id) {
-      fetchProducts();
-    }
-  }, [user?.id]);
-
-  const fetchProducts = async () => {
-    if (!user?.id) {
+  const fetchProducts = useCallback(async () => {
+    if (!user?.id || !session?.access_token) {
       setLoading(false);
       return;
     }
@@ -48,23 +41,36 @@ const Products = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [alert, session?.access_token, user?.id]);
 
-  const toggleProductStatus = async (productId, currentStatus) => {
+  useEffect(() => {
+    if (user?.id) {
+      fetchProducts();
+    }
+  }, [fetchProducts, user?.id]);
+
+  const toggleProductStatus = async (productId) => {
+    if (!session?.access_token) {
+      alert.error('Your session has expired. Please sign in again.');
+      return;
+    }
+
     try {
-      const { error } = await supabase
-        .from('products')
-        .update({ is_active: !currentStatus })
-        .eq('id', productId);
-
-      if (error) throw error;
+      const response = await fetch(`${API_URL}/products/${productId}/toggle-status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update product status');
 
       alert.success('Product status updated successfully!');
-      // Refresh products
       fetchProducts();
     } catch (err) {
       console.error('Error toggling product status:', err);
-      alert.error('Failed to update product status');
+      alert.error(err.message || 'Failed to update product status');
     }
   };
 
@@ -83,21 +89,28 @@ const Products = () => {
       return;
     }
 
-    try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productId);
+    if (!session?.access_token) {
+      alert.error('Your session has expired. Please sign in again.');
+      return;
+    }
 
-      if (error) throw error;
+    try {
+      const response = await fetch(`${API_URL}/products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to delete product');
 
       alert.success('Product deleted successfully!');
 
-      // Refresh products
       fetchProducts();
     } catch (err) {
       console.error('Error deleting product:', err);
-      alert.error('Failed to delete product');
+      alert.error(err.message || 'Failed to delete product');
     }
   };
 
@@ -228,7 +241,7 @@ const Products = () => {
                         Edit
                       </Link>
                       <button
-                        onClick={() => toggleProductStatus(product.id, product.is_active)}
+                        onClick={() => toggleProductStatus(product.id)}
                         className="text-yellow-600 hover:text-yellow-900 mr-4"
                       >
                         {product.is_active ? 'Deactivate' : 'Activate'}

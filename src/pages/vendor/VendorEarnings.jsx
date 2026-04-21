@@ -9,6 +9,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const VendorEarnings = () => {
   const { profile, vendorProfile, loading } = useAuth();
+  const alert = useAlert();
   const navigate = useNavigate();
 
   const [commissions, setCommissions] = useState([]);
@@ -155,7 +156,7 @@ const VendorEarnings = () => {
       const data = await response.json();
 
       if (data.success) {
-        alert.error('Withdrawal request submitted successfully! Admin will process it soon.');
+        alert.success('Withdrawal request submitted successfully! Admin will process it soon.');
         setShowWithdrawalForm(false);
         setWithdrawalData({
           amount: '',

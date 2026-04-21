@@ -1,6 +1,6 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useCallback, useContext, useState } from 'react';
 
-const AlertContext = createContext({});
+const AlertContext = createContext(null);
 
 export const useAlert = () => {
   const context = useContext(AlertContext);
@@ -14,17 +14,22 @@ export const AlertProvider = ({ children }) => {
   const [alerts, setAlerts] = useState([]);
   const [confirmDialog, setConfirmDialog] = useState(null);
 
-  // Generate unique ID for alerts
-  const generateId = () => `alert-${Date.now()}-${Math.random()}`;
+  const dismissAlert = useCallback((id) => {
+    setAlerts((prev) => prev.filter((alert) => alert.id !== id));
+  }, []);
 
-  // Show alert
   const showAlert = useCallback((message, type = 'info', duration = 4000) => {
-    const id = generateId();
-    const alert = { id, message, type, duration };
+    const normalizedMessage = typeof message === 'string' ? message.trim() : '';
 
-    setAlerts(prev => [...prev, alert]);
+    if (!normalizedMessage) {
+      return null;
+    }
 
-    // Auto dismiss after duration
+    const id = `alert-${Date.now()}-${Math.random()}`;
+    const alert = { id, message: normalizedMessage, type, duration };
+
+    setAlerts((prev) => [...prev, alert]);
+
     if (duration > 0) {
       setTimeout(() => {
         dismissAlert(id);
@@ -32,31 +37,13 @@ export const AlertProvider = ({ children }) => {
     }
 
     return id;
-  }, []);
+  }, [dismissAlert]);
 
-  // Dismiss alert
-  const dismissAlert = useCallback((id) => {
-    setAlerts(prev => prev.filter(alert => alert.id !== id));
-  }, []);
+  const success = useCallback((message, duration) => showAlert(message, 'success', duration), [showAlert]);
+  const error = useCallback((message, duration) => showAlert(message, 'error', duration), [showAlert]);
+  const warning = useCallback((message, duration) => showAlert(message, 'warning', duration), [showAlert]);
+  const info = useCallback((message, duration) => showAlert(message, 'info', duration), [showAlert]);
 
-  // Convenience methods
-  const success = useCallback((message, duration) => {
-    return showAlert(message, 'success', duration);
-  }, [showAlert]);
-
-  const error = useCallback((message, duration) => {
-    return showAlert(message, 'error', duration);
-  }, [showAlert]);
-
-  const warning = useCallback((message, duration) => {
-    return showAlert(message, 'warning', duration);
-  }, [showAlert]);
-
-  const info = useCallback((message, duration) => {
-    return showAlert(message, 'info', duration);
-  }, [showAlert]);
-
-  // Confirm dialog
   const confirm = useCallback((message, options = {}) => {
     return new Promise((resolve) => {
       setConfirmDialog({
@@ -72,22 +59,26 @@ export const AlertProvider = ({ children }) => {
         onCancel: () => {
           setConfirmDialog(null);
           resolve(false);
-        }
+        },
       });
     });
   }, []);
 
-  const value = {
-    alerts,
-    confirmDialog,
-    showAlert,
-    dismissAlert,
-    success,
-    error,
-    warning,
-    info,
-    confirm,
-  };
-
-  return <AlertContext.Provider value={value}>{children}</AlertContext.Provider>;
+  return (
+    <AlertContext.Provider
+      value={{
+        alerts,
+        confirmDialog,
+        showAlert,
+        dismissAlert,
+        success,
+        error,
+        warning,
+        info,
+        confirm,
+      }}
+    >
+      {children}
+    </AlertContext.Provider>
+  );
 };
