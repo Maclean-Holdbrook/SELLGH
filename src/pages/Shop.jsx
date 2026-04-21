@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
 import { useAlert } from '../contexts/AlertContext';
@@ -9,8 +9,9 @@ const API_URL = import.meta.env.VITE_API_URL;
 const Shop = () => {
   const [searchParams] = useSearchParams();
   const { addToCart, clearCart } = useCart();
-  const alert = useAlert();
+  const { success } = useAlert();
   const navigate = useNavigate();
+  const handledPaymentReferenceRef = useRef(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [addedProductId, setAddedProductId] = useState(null);
@@ -42,8 +43,15 @@ const Shop = () => {
       || searchParams.get('trxref');
 
     if (!paymentReference) {
+      handledPaymentReferenceRef.current = null;
       return;
     }
+
+    if (handledPaymentReferenceRef.current === paymentReference) {
+      return;
+    }
+
+    handledPaymentReferenceRef.current = paymentReference;
 
     const verifyPaymentOnShop = async () => {
       try {
@@ -53,7 +61,7 @@ const Shop = () => {
         if (data.success && data.data.status === 'success') {
           clearCart();
           localStorage.removeItem('pending_order');
-          alert.success('Payment successful.');
+          success('Payment successful.');
           navigate('/shop', { replace: true });
           return;
         }
@@ -66,7 +74,7 @@ const Shop = () => {
     };
 
     verifyPaymentOnShop();
-  }, [searchParams, clearCart, alert, navigate]);
+  }, [searchParams, clearCart, success, navigate]);
 
   const fetchCategories = async () => {
     try {
