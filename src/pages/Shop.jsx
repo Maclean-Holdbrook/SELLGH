@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
-import { useWishlist } from '../contexts/WishlistContext';
+import { useAlert } from '../contexts/AlertContext';
 import Navbar from '../components/Navbar';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 const Shop = () => {
-  const { user, profile, signOut } = useAuth();
-  const { addToCart, getCartCount } = useCart();
-  const { getWishlistCount } = useWishlist();
+  const [searchParams] = useSearchParams();
+  const { addToCart, clearCart } = useCart();
+  const alert = useAlert();
   const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -35,6 +34,36 @@ const Shop = () => {
     fetchProducts();
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    const paymentReference = searchParams.get('payment_reference');
+
+    if (!paymentReference) {
+      return;
+    }
+
+    const verifyPaymentOnShop = async () => {
+      try {
+        const response = await fetch(`${API_URL}/payments/verify/${paymentReference}`);
+        const data = await response.json();
+
+        if (data.success && data.data.status === 'success') {
+          clearCart();
+          localStorage.removeItem('pending_order');
+          alert.success('Payment successful.');
+          navigate('/shop', { replace: true });
+          return;
+        }
+
+        navigate(`/payment/verify?reference=${paymentReference}`, { replace: true });
+      } catch (err) {
+        console.error('Shop payment verification error:', err);
+        navigate(`/payment/verify?reference=${paymentReference}`, { replace: true });
+      }
+    };
+
+    verifyPaymentOnShop();
+  }, [searchParams, clearCart, alert, navigate]);
 
   const fetchCategories = async () => {
     try {
@@ -72,11 +101,6 @@ const Shop = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/');
   };
 
   const handleAddToCart = (e, product) => {
