@@ -40,7 +40,7 @@ const PaymentVerify = () => {
           clearCart();
           localStorage.removeItem('pending_order');
           alert.success('Payment successful. Redirecting to shop...');
-          navigate('/shop', { replace: true });
+          window.location.replace(`${window.location.origin}/shop`);
           return;
         }
 
