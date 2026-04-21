@@ -21,20 +21,16 @@ const Login = () => {
     }
 
     if (role === 'vendor') {
-      navigate('/vendor/dashboard', { replace: true });
+      navigate(vendorProfile ? '/vendor/dashboard' : '/vendor/onboarding', { replace: true });
     } else if (role === 'admin') {
       navigate('/sellgh-admin/dashboard', { replace: true });
     } else {
       navigate('/shop', { replace: true });
     }
-  }, [from, navigate]);
+  }, [from, navigate, vendorProfile]);
 
   useEffect(() => {
     if (!loading && user && profile) {
-      if (profile.role === 'vendor' && vendorProfile === null) {
-        return;
-      }
-
       redirectBasedOnRole(profile.role);
     }
   }, [loading, user, profile, vendorProfile, redirectBasedOnRole]);

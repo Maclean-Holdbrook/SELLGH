@@ -31,7 +31,7 @@ export const getUserProfile = async (userId) => {
     .from('users')
     .select('*')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error getting user profile:', error);
@@ -46,7 +46,7 @@ export const isVendor = async (userId) => {
     .from('vendors')
     .select('id')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   return !error && data !== null;
 };
@@ -57,7 +57,7 @@ export const getVendorProfile = async (userId) => {
     .from('vendors')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error getting vendor profile:', error);
