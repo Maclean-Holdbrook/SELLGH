@@ -16,6 +16,7 @@ import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import OrderSuccess from './pages/OrderSuccess';
 import PaymentVerify from './pages/PaymentVerify';
+import MobileOAuthReturn from './pages/MobileOAuthReturn';
 import About from './pages/About';
 import Support from './pages/Support';
 import Login from './pages/auth/Login';
@@ -65,6 +66,7 @@ function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/order-success/:orderId" element={<OrderSuccess />} />
           <Route path="/payment/verify" element={<PaymentVerify />} />
+          <Route path="/mobile-oauth-return" element={<MobileOAuthReturn />} />
           <Route path="/orders" element={<OrderHistory />} />
           <Route path="/order/:orderId" element={<OrderDetails />} />
           <Route path="/wishlist" element={<Wishlist />} />
